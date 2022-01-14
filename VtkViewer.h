@@ -1,6 +1,6 @@
 #pragma once
 
-#ifndef __win64
+#ifdef _WIN64
 #include <Windows.h>
 #endif
 
@@ -38,18 +38,18 @@ private:
 public:
 	int Init();
 
-	int AddSphere(
+	int SetSphere(
 		const std::string& strWidgetName,
 		double dX, double dY, double dZ,
 		int nRed, int nGreen, int nBlue,
-		double dRadius, int nResolution = 50);
+		double dRadius, int nResolution = 10);
 	
-	int AddCone(
+	int SetCone(
 		const std::string& strWidgetName,
 		double dX1, double dY1, double dZ1,
 		double dX2, double dY2, double dZ2,
 		int nRed, int nGreen, int nBlue,
-		double dRadius, int nResolution = 50);
+		double dRadius, int nResolution = 10);
 
 	int AddCube(
 		const std::string& strWidgetName,
@@ -64,29 +64,46 @@ public:
 		int nRed, int nGreen, int nBlue,
 		double dThickness);
 
-	int AddText3D(
+	int SetText2D(
 		const std::string& strWidgetName,
-		double dX, double dY, double dZ, double dScale,
+		int nX, int nY, int nFontSize,
+		int nRed, int nGreen, int nBlue,
 		const std::string& strText);
 
-	int UpdateSphere(
-		const std::string& strWidgetName,
-		double dX, double dY, double dZ);
-	
-	int UpdateCone(
-		const std::string& strWidgetName,
-		double dX, double dY, double dZ);
-
-	int UpdateText3D(
+	int SetText3D(
 		const std::string& strWidgetName,
 		double dX, double dY, double dZ, double dScale,
+		int nRed, int nGreen, int nBlue,
 		const std::string& strText);
+
+	int UpdateTransparency(
+		const std::string& strWidgetName,
+		double dValue);
 
 	int RemoveObject(const std::string& strWidgetName);
 
-	int ResetCamera();
+	int ResetViewport();
 
 	int RunThread();
+
+private:
+
+	int updateSphere(
+		const std::string& strWidgetName,
+		double dX, double dY, double dZ);
+
+	int updateCone(
+		const std::string& strWidgetName,
+		double dX, double dY, double dZ);
+
+	int updateText3D(
+		const std::string& strWidgetName,
+		double dX, double dY, double dZ, double dScale,
+		const std::string& strText);
+
+	int updateText2D(
+		const std::string& strWidgetName,
+		const std::string& strText);
 
 private:
 	int viewerThread();
@@ -94,14 +111,13 @@ private:
 	int removeObject(const std::string& strWidgetName);
 	int removeObjects();
 
-private:
+protected:
 	std::mutex m_Mutex;
 	std::thread m_ViewerThread;
 
 	cv::Affine3f m_ptCamPose;
 	std::shared_ptr<cv::viz::Viz3d> m_pViewport;
 
-private:
 	std::queue<std::string> m_queRemoveObjects;
 };
 

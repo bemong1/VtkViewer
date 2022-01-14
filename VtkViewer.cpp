@@ -35,54 +35,52 @@ int VtkViewer::Init()
 	return 0;
 }
 
-int VtkViewer::AddSphere(
+int VtkViewer::SetSphere(
 	const std::string& strWidgetName,
 	double dX, double dY, double dZ,
 	int nRed, int nGreen, int nBlue,
 	double dRadius, int nResolution)
 {
-	m_Mutex.lock();
-	LM_RESULT lmRet = AddData(strWidgetName, "Sphere");
-	if (lmRet == LM_RESULT::ERROR_DATA_ALREADY_EXIST)
 	{
-		m_Mutex.unlock();
-		return static_cast<int>(LM_RESULT::ERROR_DATA_ALREADY_EXIST);
+		std::lock_guard<std::mutex> lock(m_Mutex);
+		LM_RESULT lmRet = AddData(strWidgetName, "Sphere");
+		if (lmRet == LM_RESULT::OK)
+		{
+			cv::viz::WSphere wSphere(
+				cv::Point3d(0.0, 0.0, 0.0), dRadius, nResolution,
+				cv::viz::Color(nBlue, nGreen, nRed));
+			m_pViewport->showWidget(strWidgetName, wSphere);
+		}
 	}
-
-	cv::viz::WSphere wSphere(
-		cv::Point3d(dX, dY, dZ), dRadius, nResolution,
-		cv::viz::Color::Color(nBlue, nGreen, nRed));
-
-	m_pViewport->showWidget(strWidgetName, wSphere);
-	m_Mutex.unlock();
+	
+	updateSphere(strWidgetName, dX, dY, dZ);
 
 	return 0;
 }
 
-int VtkViewer::AddCone(
+int VtkViewer::SetCone(
 	const std::string& strWidgetName,
 	double dX1, double dY1, double dZ1,
 	double dX2, double dY2, double dZ2,
 	int nRed, int nGreen, int nBlue,
 	double dRadius, int nResolution)
 {
-	m_Mutex.lock();
-	LM_RESULT lmRet = AddData(strWidgetName, "Cone");
-	if (lmRet == LM_RESULT::ERROR_DATA_ALREADY_EXIST)
 	{
-		m_Mutex.unlock();
-		return static_cast<int>(LM_RESULT::ERROR_DATA_ALREADY_EXIST);
+		std::lock_guard<std::mutex> lock(m_Mutex);
+		LM_RESULT lmRet = AddData(strWidgetName, "Cone");
+		if (lmRet == LM_RESULT::OK)
+		{
+			cv::viz::WCone wCone(
+				dRadius,
+				cv::Point3d(dX1 - dX2, dY1 - dY2, dZ1 - dZ2),
+				cv::Point3d(0.0, 0.0, 0.0),
+				nResolution,
+				cv::viz::Color(nBlue, nGreen, nRed));
+			m_pViewport->showWidget(strWidgetName, wCone);
+		}
 	}
 
-	cv::viz::WCone wCone(
-		dRadius,
-		cv::Point3d(dX1, dY1, dZ1), 
-		cv::Point3d(dX2, dY2, dZ2), 
-		500,
-		cv::viz::Color::Color(nBlue, nGreen, nRed));
-
-	m_pViewport->showWidget(strWidgetName, wCone);
-	m_Mutex.unlock();
+	updateCone(strWidgetName, dX2, dY2, dZ2);
 
 	return 0;
 }
@@ -93,21 +91,18 @@ int VtkViewer::AddCube(
 	double dX_2, double dY_2, double dZ_2,
 	int nRed, int nGreen, int nBlue)
 {
-	m_Mutex.lock();
+	std::lock_guard<std::mutex> lock(m_Mutex);
+
 	LM_RESULT lmRet = AddData(strWidgetName, "Cube");
 	if (lmRet == LM_RESULT::ERROR_DATA_ALREADY_EXIST)
-	{
-		m_Mutex.unlock();
 		return static_cast<int>(LM_RESULT::ERROR_DATA_ALREADY_EXIST);
-	}
 
 	cv::viz::WCube wCubeWidget(
 		cv::Point3d(dX_1, dY_1, dZ_1),
 		cv::Point3d(dX_2, dY_2, dZ_2),
-		true, cv::viz::Color::Color(nBlue, nGreen, nRed));
+		true, cv::viz::Color(nBlue, nGreen, nRed));
 
 	m_pViewport->showWidget(strWidgetName, wCubeWidget);
-	m_Mutex.unlock();
 
 	return 0;
 }
@@ -119,91 +114,143 @@ int VtkViewer::AddLine(
 	int nRed, int nGreen, int nBlue,
 	double dThickness)
 {
-	m_Mutex.lock();
+	std::lock_guard<std::mutex> lock(m_Mutex);
+
 	LM_RESULT lmRet = AddData(strWidgetName, "Line");
 	if (lmRet == LM_RESULT::ERROR_DATA_ALREADY_EXIST)
-	{
-		m_Mutex.unlock();
 		return static_cast<int>(LM_RESULT::ERROR_DATA_ALREADY_EXIST);
-	}
 
 	cv::viz::WLine wLineWidget(
 		cv::Point3d(dX_1, dY_1, dZ_1),
 		cv::Point3d(dX_2, dY_2, dZ_2),
-		cv::viz::Color::Color(nBlue, nGreen, nRed));
+		cv::viz::Color(nBlue, nGreen, nRed));
 		
 	wLineWidget.setRenderingProperty(cv::viz::LINE_WIDTH, dThickness);
 
 	m_pViewport->showWidget(strWidgetName, wLineWidget);
-	m_Mutex.unlock();
 
 	return 0;
 }
 
-int VtkViewer::AddText3D(
+int VtkViewer::SetText2D(
 	const std::string& strWidgetName,
-	double dX, double dY, double dZ, double dScale,
+	int nX, int nY, int nFontSize,
+	int nRed, int nGreen, int nBlue,
 	const std::string& strText)
 {
-	m_Mutex.lock();
-	LM_RESULT lmRet = AddData(strWidgetName, "Text3D");
-	if (lmRet == LM_RESULT::ERROR_DATA_ALREADY_EXIST)
 	{
-		m_Mutex.unlock();
-		return static_cast<int>(LM_RESULT::ERROR_DATA_ALREADY_EXIST);
+		std::lock_guard<std::mutex> lock(m_Mutex);
+		LM_RESULT lmRet = AddData(strWidgetName, "Text2D");
+		if (lmRet == LM_RESULT::OK)
+		{
+			cv::viz::WText wText = cv::viz::WText(
+				strWidgetName,
+				cv::Point(nX, nY),
+				nFontSize,
+				cv::viz::Color(nBlue, nGreen, nRed));
+
+			m_pViewport->showWidget(strWidgetName, wText);
+		}
 	}
 
-	cv::viz::WText3D wText3D = cv::viz::WText3D(
-		strText,
-		cv::Point3d(dX, dY, dZ - dScale * 2),
-		dScale,
-		true,
-		cv::viz::Color::white());
-
-	m_pViewport->showWidget(strWidgetName, wText3D);
-	m_Mutex.unlock();
+	updateText2D(strWidgetName, strText);
 
 	return 0;
 }
 
-int VtkViewer::UpdateCone(
+int VtkViewer::SetText3D(
+	const std::string& strWidgetName,
+	double dX, double dY, double dZ, double dScale,
+	int nRed, int nGreen, int nBlue,
+	const std::string& strText)
+{
+	{
+		std::lock_guard<std::mutex> lock(m_Mutex);
+		LM_RESULT lmRet = AddData(strWidgetName, "Text3D");
+		if (lmRet == LM_RESULT::OK)
+		{
+			cv::viz::WText3D wText3D = cv::viz::WText3D(
+				strText,
+				cv::Point3d(0.0, 0.0, 0.0 - dScale * 2),
+				dScale,
+				true,
+				cv::viz::Color(nBlue, nGreen, nRed));
+
+			m_pViewport->showWidget(strWidgetName, wText3D);
+		}
+	}
+
+	updateText3D(strWidgetName, dX, dY, dZ, dScale, strText);
+
+	return 0;
+}
+
+int VtkViewer::updateCone(
 	const std::string& strWidgetName,
 	double dX, double dY, double dZ)
 {
-	m_Mutex.lock();
+	std::lock_guard<std::mutex> lock(m_Mutex);
+
+	LM_RESULT lmRet = IsExistData(strWidgetName);
+	if (lmRet != LM_RESULT::OK)
+		return static_cast<int>(LM_RESULT::ERROR_DATA_IS_NOT_EXIST);
+
 	cv::Affine3d wCone= m_pViewport->getWidgetPose(strWidgetName);
 	cv::Vec3d rvec = wCone.rvec();
 	cv::Vec3d tvec = cv::Vec3d(dX, dY, dZ);
 	wCone = cv::Affine3d(rvec, tvec);
 
 	m_pViewport->setWidgetPose(strWidgetName, wCone);
-	m_Mutex.unlock();
 
 	return 0;
 }
 
-int VtkViewer::UpdateSphere(
+int VtkViewer::updateSphere(
 	const std::string& strWidgetName,
 	double dX, double dY, double dZ)
 {
-	m_Mutex.lock();
+	std::lock_guard<std::mutex> lock(m_Mutex);
+
+	LM_RESULT lmRet = IsExistData(strWidgetName);
+	if (lmRet != LM_RESULT::OK)
+		return static_cast<int>(LM_RESULT::ERROR_DATA_IS_NOT_EXIST);
+
 	cv::Affine3d wSpherePose = m_pViewport->getWidgetPose(strWidgetName);
 	cv::Vec3d rvec = wSpherePose.rvec();
 	cv::Vec3d tvec = cv::Vec3d(dX, dY, dZ);
 	wSpherePose = cv::Affine3d(rvec, tvec);
 
 	m_pViewport->setWidgetPose(strWidgetName, wSpherePose);
-	m_Mutex.unlock();
 
 	return 0;
 }
 
-int VtkViewer::UpdateText3D(
+int VtkViewer::updateText2D(
+	const std::string& strWidgetName,
+	const std::string& strText)
+{
+	std::lock_guard<std::mutex> lock(m_Mutex);
+
+	LM_RESULT lmRet = IsExistData(strWidgetName);
+	if (lmRet != LM_RESULT::OK)
+		return static_cast<int>(LM_RESULT::ERROR_DATA_IS_NOT_EXIST);
+
+	m_pViewport->getWidget(strWidgetName).cast<cv::viz::WText>().setText(strText);
+
+	return 0;
+}
+
+int VtkViewer::updateText3D(
 	const std::string& strWidgetName,
 	double dX, double dY, double dZ, double dScale,
 	const std::string& strText)
 {
-	m_Mutex.lock();
+	std::lock_guard<std::mutex> lock(m_Mutex);
+
+	LM_RESULT lmRet = IsExistData(strWidgetName);
+	if (lmRet != LM_RESULT::OK)
+		return static_cast<int>(LM_RESULT::ERROR_DATA_IS_NOT_EXIST);
+
 	cv::Affine3d wSpherePose = m_pViewport->getWidgetPose(strWidgetName);
 	cv::Vec3d rvec = wSpherePose.rvec();
 	cv::Vec3d tvec = cv::Vec3d(dX, dY, dZ - dScale*2);
@@ -211,42 +258,53 @@ int VtkViewer::UpdateText3D(
 
 	m_pViewport->setWidgetPose(strWidgetName, wSpherePose);
 	m_pViewport->getWidget(strWidgetName).cast<cv::viz::WText3D>().setText(strText);
-	m_Mutex.unlock();
+
+	return 0;
+}
+
+int VtkViewer::UpdateTransparency(
+	const std::string& strWidgetName,
+	double dValue)
+{
+	std::lock_guard<std::mutex> lock(m_Mutex);
+
+	LM_RESULT lmRet = IsExistData(strWidgetName);
+	if (lmRet != LM_RESULT::OK)
+		return static_cast<int>(LM_RESULT::ERROR_DATA_IS_NOT_EXIST);
+
+	m_pViewport->getWidget(strWidgetName).cast<cv::viz::WText3D>().setRenderingProperty(
+		cv::viz::OPACITY,
+		dValue);
 
 	return 0;
 }
 
 int VtkViewer::RemoveObject(const std::string& strWidgetName)
 {
-	m_Mutex.lock();
+	std::lock_guard<std::mutex> lock(m_Mutex);
 	m_queRemoveObjects.push(strWidgetName);
-	m_Mutex.unlock();
 
 	return 0;
 }
 
-int VtkViewer::ResetCamera()
+int VtkViewer::ResetViewport()
 {
-	m_Mutex.lock();
+	std::lock_guard<std::mutex> lock(m_Mutex);
 	m_pViewport->resetCamera();
-	m_Mutex.unlock();
 
 	return 0;
 }
 
 int VtkViewer::removeObject(const std::string& strWidgetName)
 {
-	m_Mutex.lock();
-	LM_RESULT lmRet = IsExistData(strWidgetName);
-	if (lmRet != LM_RESULT::OK)
-	{
-		m_Mutex.unlock();
-		return static_cast<int>(LM_RESULT::ERROR_DATA_IS_NOT_EXIST);
-	}
+	std::lock_guard<std::mutex> lock(m_Mutex);
 
-	m_pViewport->removeWidget(strWidgetName);
-	RemoveDataByKey(strWidgetName);
-	m_Mutex.unlock();
+	LM_RESULT lmRet = IsExistData(strWidgetName);
+	if (lmRet == LM_RESULT::OK)
+	{
+		m_pViewport->removeWidget(strWidgetName);
+		RemoveDataByKey(strWidgetName);
+	}
 
 	return 0;
 }
@@ -257,9 +315,8 @@ int VtkViewer::removeObjects()
 	{
 		removeObject(m_queRemoveObjects.front());
 		
-		m_Mutex.lock();
+		std::lock_guard<std::mutex> lock(m_Mutex);
 		m_queRemoveObjects.pop();
-		m_Mutex.unlock();
 	}
 	return 0;
 }
@@ -278,6 +335,7 @@ int VtkViewer::viewerThread()
 	while (!m_pViewport->wasStopped())
 	{
 		m_Mutex.lock();
+		//std::lock_guard<std::mutex> lock(m_Mutex);
 		m_pViewport->spinOnce(1, true);
 		m_Mutex.unlock();
 
