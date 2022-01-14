@@ -4,12 +4,17 @@
 #include <Windows.h>
 #endif
 
+#ifdef __APPLE__
+#include <unistd.h>
+#define sleep(x) (usleep(x))
+#endif
+
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/viz.hpp>
 
-#include <DataStruct/ListManager/ListManager.h>
+#include "third_party/BemongLibrary/DataStruct/ListManager/ListManager.h"
 using namespace bemong::enum_class;
 
 #include <thread>
